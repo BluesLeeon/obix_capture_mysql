@@ -1,0 +1,1 @@
+SELECT * FROM "ems_obix_2023_09" where item_addr='H_1/CH/ZFQ_JS/';
