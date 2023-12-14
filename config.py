@@ -5,7 +5,7 @@ MYSQL_CONFIG = {
     'port': 7047,
     'user': 'root',
     'password': 'ems123@4',
-    'database': 'ems'
+    'database': 'ems_backup'
     # 其他的连接参数
 }
 

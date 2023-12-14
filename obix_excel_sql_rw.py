@@ -8,12 +8,6 @@ import pymysql
 import math
 from config import MYSQL_CONFIG,OBIX_CONFIG
 
-device_list=['温度传感器','压力传感器','阀门','地源泵','用户泵','锅炉循环泵','氢燃料电池预热循环泵','蓄水箱循环泵','蓄水箱循环泵','补水泵','主循环泵','主循环泵','进地热井','蓄水箱液位','补水箱液位','蓄能水箱压力监测',
-             '出蓄水箱总管温度','出蓄水箱总管压力','能源站回水管除污器前压力监测','能源站回水管除污器后压力监测','接DK-1及DK-2地块供水管压力监测','接DK-1及DK-2地块供水管温度监测','锅炉回水总管温度监测','锅炉回水总管压力监测','旁通管压差监测',
-             '补水泵阀门','电表','出地热井水管总管水管冷热量监测','能源站供水管冷热量监测','接DK-1及DK-2地块供水管冷热量监测','氢燃料电池余热冬季蓄热时出水管冷热量监测','地源热泵夏季夜间往蓄水罐蓄冷时出水管冷热量监测',
-             '电锅炉冬季蓄热时出水管冷热量监测','进地热井水管总管流量监测','地源热泵夏季夜间往蓄水罐蓄冷时供水管冷热量监测','地源热泵蒸发侧流量','地源热泵地源侧流量','水表','地源热泵','水泵','锅炉','平台控制相关点位',
-             '能源中心板换','消防水池板换','运动员村','氢燃料电池','水箱温度','水箱液位']
-
 
 # 给定客户端和地址，就可以读地址的数据  注意插入的数值不能为nan
 #读取到的有些值为bool类型，要转为float
@@ -32,36 +26,27 @@ def read_obix(client, point_path):
 
 
 # 要处理这个表，根究表的信息，给出[load_time,system_id,system_name,device_id,device_name,position_id,position_name,load_value]
-# obix_thread函数执行一遍，就得到tmp表的每行解析出来的reate_time,addr,name,unit,value
+# obix_thread函数执行一遍，就得到tmp表的每行解析出来的create_time,addr,name,unit,value
 def obix_thread():
     #client = Client("192.168.6.60", "obix", "Honeywell2022", port = 8082, https=False)
     client = Client(**OBIX_CONFIG)
     #这个循环会把都tmp表的每一行都遍历一边
     global load_time
-
     i=0
     while(len(tmp)>0): 
 
         i=i+1
-        point=tmp.pop(0)    #这里的pop也是填充过了的
-        system_id= '10'       # 1
-        system_name= '榆林能源站暖通系统'     #暖通系统
-        #device_string = point[0]
-        #print("device_string:",device_string,type(device_string))
-        # 0设备编号	 1点位地址	2点位类型	3读写权限	4注释	Unnamed: 5	Unnamed: 6	7device_id	8device_name	9device_id_00	10position_id    11position_id_database
-        try:
-            device_id = system_id+ f"{point[9]:02}"   
-            device_name = point[8]
-            position_id = device_id+f"{point[10]:06}"  
-            position_name=point[4]
-        except Exception as e:   
-            print(f"此设备有问题: {point}, Error: {e}")   #有些写不进去 
-
-        # unit=str(point[5]) if len(str(point[5]))<100 else str(point[5])[:100]
+        #tmp: 0设备编号	1点位地址	2点位类型	3system_id	4system_name	5device_id	6device_name	7position_id	8position_name	9position_name_explain1	10position_name_explain2	11position_id_database
+        point=tmp.pop(0)    #这里的pop也是填充过了的 取df的第一行
+        system_id = f"{point[3]:04}"   
+        system_name = point[4]
+        device_id = f"{point[5]:04}" 
+        device_name = point[6]
+        position_id_database = f"{point[11]:014}" 
+        position_name= point[8]
         load_value=read_obix(client,'/config/Drivers/NiagaraNetwork/YL_8000/points'+point[1])   # 这个相当于是读取表里面的地址，而不是一股脑的把全部数据都采集上来
         print("load_value:",load_value,type(load_value),i)
-
-        dl.append([load_time,system_id,system_name,device_id,device_name,position_id,position_name,load_value])
+        dl.append([load_time,system_id,system_name,device_id,device_name,position_id_database,position_name,load_value])
     print(len(dl))
 
 
@@ -103,7 +88,7 @@ def duqu1():
 
 
     dl=[]
-    tmp=pd.read_excel(io='/home/ems/ems_capture/obix_capture-main/processed_obix_database.xlsx',sheet_name=0)
+    tmp=pd.read_excel(io='/home/ems/ems_capture/obix_capture-main/processed_obix_database_v2.xlsx',sheet_name=0)
     # 使用前向填充方法填充 NaN 值（向前填充）
     #tmp = tmp.fillna(method='ffill', axis=0)
     tmp=np.array(tmp).tolist()
@@ -114,7 +99,7 @@ def duqu1():
 if __name__ == '__main__':
     
     global tmp
-    tmp=pd.read_excel(io='/home/ems/ems_capture/obix_capture-main/processed_obix_database.xlsx',sheet_name=0)
+    tmp=pd.read_excel(io='/home/ems/ems_capture/obix_capture-main/processed_obix_database_v2.xlsx',sheet_name=0)
     # 使用前向填充方法填充 NaN 值（向前填充）
     # tmp = tmp.fillna(method='ffill', axis=0)   #
     tmp=np.array(tmp).tolist()
